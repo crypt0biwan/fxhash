@@ -3,12 +3,31 @@
 <html lang="en">
 <head>
     <meta charset='UTF-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>Slumbers</title>
 
     <style>
-        #colors div {
+        
+        
+        @media screen and (max-width: 648px) {
+            body { margin: 0; }
+        }
+
+        .grid { 
+            display: grid;
+            column-gap: 10px;
+            grid-template-columns: repeat(auto-fill, 640px);
+        }
+
+        .grid > div {
+            flex: 0 1 auto;
+        }
+
+        #palettes div {
             clear: both;
         }
+        #palettes span,
         #colors span {
             width: 40px;
             height: 40px;
@@ -18,11 +37,77 @@
 </head>
 
 <body>
-    <div id="colors"></div>
+    <div class="grid">
+        <div id="palettes">
+            <h4>Slumbers palettes</h4>
+        </div>
+
+        <div id="colors">
+            <h4>Slumbers palettes, sorted by hue</h4>
+        </div>
+    </div>
   
     <script>
+        var Color = function Color(hexVal) { //define a Color class for the color objects
+            this.hex = hexVal;
+        };
+
+        // https://jsfiddle.net/shanfan/ojgp5718/
+        constructColor = function(colorObj){
+            var hex = colorObj.hex.substring(1);
+            console.log(hex)
+            /* Get the RGB values to calculate the Hue. */
+            var r = parseInt(hex.substring(0, 2), 16) / 255;
+            var g = parseInt(hex.substring(2, 4), 16) / 255;
+            var b = parseInt(hex.substring(4, 6), 16) / 255;
+            
+            /* Getting the Max and Min values for Chroma. */
+            var max = Math.max.apply(Math, [r, g, b]);
+            var min = Math.min.apply(Math, [r, g, b]);
+            
+            
+            /* Variables for HSV value of hex color. */
+            var chr = max - min;
+            var hue = 0;
+            var val = max;
+            var sat = 0;
+
+            
+            if (val > 0) {
+                /* Calculate Saturation only if Value isn't 0. */
+                sat = chr / val;
+                if (sat > 0) {
+                    if (r == max) {
+                        hue = 60 * (((g - min) - (b - min)) / chr);
+                        if (hue < 0) {
+                            hue += 360;
+                        }
+                    } else if (g == max) {
+                        hue = 120 + 60 * (((b - min) - (r - min)) / chr);
+                    } else if (b == max) {
+                        hue = 240 + 60 * (((r - min) - (g - min)) / chr);
+                    }
+                }
+            }
+            colorObj.chroma = chr;
+            colorObj.hue = hue;
+            colorObj.sat = sat;
+            colorObj.val = val;
+            colorObj.luma = 0.3 * r + 0.59 * g + 0.11 * b;
+            colorObj.red = parseInt(hex.substring(0, 2), 16);
+            colorObj.green = parseInt(hex.substring(2, 4), 16);
+            colorObj.blue = parseInt(hex.substring(4, 6), 16);
+            return colorObj;
+        };
+
+        sortColorsByHue = function (colors) {
+            return colors.sort(function (a, b) {
+                return a.hue - b.hue;
+            });
+        }
+
         // from Slumbers source (fxhash project) https://gateway.fxhash2.xyz/ipfs/QmSCw3J65Q3QBgdBRDkdWmz2smii6YTWjed1EEcfbBFS8r/?fxhash=ooBESjQ3BzDNGPFQo8LkCmp8mGxdy8AoSwUqNYCruLRwsF2ShUh
-        [
+        let palettes = [
             ["#7E3339","#F0CD8F","#2269A9","#BC4730","#243C75","#5E9ECC","#571D24","#1A0A14","#DBD3BC","#B5787A","#DD8032","#3B597D","#3A1520","#2D2745","#1F152F","#363434"],
             ["#CE7F62","#93594B","#2995B2","#CC1E30","#898C75","#25171E","#69594B","#64423E","#473E49","#406671","#4A3331","#DCAE8A","#D3B8AE","#383536","#0A060A","#C4542C"],
             ["#E8E0DF","#A60E07","#DDA29A","#38140B","#D77D65","#E4422E","#BB614E","#B65039","#AAD0E2","#692318","#F0BEA9","#84726C","#EE6C44","#ECBC8C","#747C8C","#8CBCCC"],
@@ -58,19 +143,50 @@
             ["#043C62","#B78573","#62761A","#171412","#68432D","#3E4C0F","#D8D0C5","#0A354D","#A67224","#2D3021","#D4C6AD","#432A1B","#2E1E18","#6E8D9C","#80942F","#8C3C34"],
             ["#263332","#AB985C","#DBC6A3","#578FBA","#7F7866","#81310A","#532D17","#C59B0E","#95771D","#ACADA7","#4E7CB2","#B8C2BD","#795435","#A44413","#C47C59","#74442C"],
             ["#09130D","#25311F","#0E2E40","#792C04","#2D4640","#504723","#0C527D","#8A6B2A","#C15411","#43707C","#1876AE","#C5871D","#7A9CB1","#BBA27B","#7CB4DA","#DAD6C9"]
-        ].forEach((palette, index) => {
+        ]
+        let paletteColors = []
+        
+        palettes.forEach((palette, index) => {
             let html = ''
             
             html += `<div>`
             
             palette.forEach(color => {
-                html += `<span style="background-color: ${color};"></span>`
+                paletteColors.push(color)
+
+                html += `<span style="background-color: ${color};" title="${color}"></span>`
             })
             
             html += `</div>`
             
-            document.querySelector('#colors').innerHTML += html
+            document.querySelector('#palettes').innerHTML += html
         })
+
+        let colors = []
+
+        paletteColors.forEach(paletteColor => {
+            let color = new Color(paletteColor);
+            constructColor(color);
+            colors.push(color);
+        })
+
+        console.log(colors)
+
+        sortColorsByHue(colors)
+
+        console.log(colors)
+
+        let html = ''
+        
+        colors.forEach(color => {
+            // html += `<div>`
+            html += `<span style="background-color: ${color.hex};" title="${color.hex}"></span>`
+            // html += `</div>`
+
+        })
+        
+        document.querySelector('#colors').innerHTML += html
+        
         </script>
     </body>
 </html>
